@@ -175,3 +175,35 @@ if __name__ == "__main__":
     print("✅ 任务3 全部完成！")
     print("📷 图片已保存：route_stops.png")
     print("=" * 60)
+
+    # ==============================
+    # 任务4 高峰小时系数 PHF 精确计算（自动识别高峰）
+    # ==============================
+    df = pd.read_excel("ICData_clean.xlsx")
+
+    df['交易时间'] = pd.to_datetime(df['交易时间'])
+    df['hour'] = df['交易时间'].dt.hour
+    df['minute'] = df['交易时间'].dt.minute
+
+
+    hourly_count = df.groupby('hour').size()
+    peak_hour = hourly_count.idxmax()
+    peak_volume = hourly_count.max()
+
+
+    peak_df = df[df['hour'] == peak_hour].copy()
+
+    peak_df['5min_bin'] = peak_df['minute'] // 5
+    max5 = peak_df.groupby('5min_bin').size().max()
+    phf5 = peak_volume / (12 * max5)
+
+
+    peak_df['15min_bin'] = peak_df['minute'] // 15
+    max15 = peak_df.groupby('15min_bin').size().max()
+    phf15 = peak_volume / (4 * max15)
+
+    print(f"高峰小时：{peak_hour:02d}:00 ~ {peak_hour + 1:02d}:00，刷卡量：{peak_volume} 次")
+    print(f"最大5分钟刷卡量：{max5} 次")
+    print(f"PHF5  = {peak_volume} / (12 × {max5}) = {phf5:.4f}")
+    print(f"最大15分钟刷卡量：{max15} 次")
+    print(f"PHF15 = {peak_volume} / ( 4 × {max15}) = {phf15:.4f}")
