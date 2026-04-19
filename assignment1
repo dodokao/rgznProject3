@@ -217,44 +217,41 @@ if __name__ == "__main__":
 #===============================
 
 import os
-df = pd.read_excel("ICData_clean.xlsx")
+df = pd.read_excel("ICData_clean.xlsx")#读取数据
 
-df['线路号'] = pd.to_numeric(df['线路号'], errors='coerce')
-filter_df = df[(df['线路号'] >= 1101) & (df['线路号'] <= 1120)].copy()
+df['线路号'] = pd.to_numeric(df['线路号'], errors='coerce')#先统一类型，避免格式问题
+filter_df = df[(df['线路号'] >= 1101) & (df['线路号'] <= 1120)].copy()#筛选1001-1120线路的数据
 
-filter_df = filter_df.drop_duplicates(subset=['线路号', '车辆编号', '驾驶员编号'])
+filter_df = filter_df.drop_duplicates(subset=['线路号', '车辆编号', '驾驶员编号'])# 去重
 
-folder_name = "线路驾驶员信息"
+folder_name = "线路驾驶员信息"# 创建线路驾驶员信息文件夹
 if not os.path.exists(folder_name):
-    os.makedirs(folder_name)  
+    os.makedirs(folder_name)# 不存在则创建
     print(f"✅ 已创建文件夹：{os.path.abspath(folder_name)}")
 else:
     print(f"ℹ️ 文件夹 {folder_name} 已存在，无需重复创建")
+file_paths = []# 存储生成的文件路径，用于后续打印
+for line_num in range(1101, 1121):# 遍历1101~1120每条线路
+    line_df = filter_df[filter_df['线路号'] == line_num]   # 筛选当前线路的记录
 
-file_paths = []
-
-for line_num in range(1101, 1121):
-    line_df = filter_df[filter_df['线路号'] == line_num]
-
-    file_name = f"{line_num}.txt"
+    file_name = f"{line_num}.txt"   # 构建文件路径
     file_path = os.path.join(folder_name, file_name)
-
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(f"线路号: {line_num}\n")
-        f.write("车辆编号\t驾驶员编号\n")  
+        f.write("车辆编号\t驾驶员编号\n")  # 表头
 
-        for _, row in line_df.iterrows():
+        for _, row in line_df.iterrows():  # 遍历当前线路的车辆-驾驶员对应关系
             car_id = row['车辆编号']
             driver_id = row['驾驶员编号']
             f.write(f"{car_id}\t\t{driver_id}\n")
 
-    file_paths.append(os.path.abspath(file_path))
+    file_paths.append(os.path.abspath(file_path)) # 记录文件路径
     print(f"📄 已生成文件：{file_path}")
- 
+
 print("\n" + "=" * 80)
 print("✅ 20个线路文件生成路径汇总：")
 print("=" * 80)
-for idx, path in enumerate(file_paths, 1):
+for idx, path in enumerate(file_paths, 1):#生成需要的20个txt文件
     print(f"{idx:2d}. {path}")
 
 print("\n🎉 所有文件已成功生成！共生成 {} 个文件".format(len(file_paths)))
