@@ -115,46 +115,48 @@ print("="*60)
 
 # ==============================
 # 任务3 线路站点分析
-# 严格按照要求实现，不修改函数签名
 # ==============================
 import seaborn as sns
 
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
-
+#开始定义要求的函数
+"""
+ 目的：计算各线路乘客的平均搭乘站点数及其标准差
+ Parameters
+ ----------
+ df : pd.DataFrame  预处理后的数据集
+ route_col : str    线路号列名
+ stops_col : str    搭乘站点数列名
+ Returns
+ -------
+ pd.DataFrame  包含列：线路号、mean_stops、std_stops，按 mean_stops 降序排列
+ """
 def analyze_route_stops(df, route_col='线路号', stops_col='ride_stops'):
-    # 计算均值和标准差
-    result = df.groupby(route_col)[stops_col].agg(['mean', 'std']).reset_index()
+    result = df.groupby(route_col)[stops_col].agg(['mean', 'std']).reset_index()  # 计算均值和标准差
     result.columns = ['线路号', 'mean_stops', 'std_stops']
-    # 按均值降序排序
-    result = result.sort_values('mean_stops', ascending=False)
+    result = result.sort_values('mean_stops', ascending=False)# 按均值降序排序
     return result
 
-
-
 if __name__ == "__main__":
-
-    df = pd.read_excel("ICData_clean.xlsx")
-
-    route_stats = analyze_route_stops(df)
+    df = pd.read_excel("ICData_clean.xlsx")  # 读取数据
+    route_stats = analyze_route_stops(df)   # 调用函数并打印前10行
     print("=" * 60)
     print("✅ 各线路平均搭乘站点数（前10行）")
     print("=" * 60)
     print(route_stats.head(10).to_string(index=False))
-
-    top15 = route_stats.head(15)
-
+    top15 = route_stats.head(15)# 取均值最高的前15条线路
     plt.figure(figsize=(11, 7))
-
+    # 用seaborn来实现 水平条形图可视化
     sns.barplot(
         data=top15,
-        x='mean_stops',
+        x='mean_stops',#按要求处理X轴Y轴颜色title
         y='线路号',
         orient='h',
         palette='Blues_d',
-        errorbar='se',
-        capsize=0.3
+        errorbar='se',# 误差棒显示标准差
+        capsize=0.3 # 误差棒端点大小
     )
 
     # 图表格式
@@ -173,4 +175,3 @@ if __name__ == "__main__":
     print("✅ 任务3 全部完成！")
     print("📷 图片已保存：route_stops.png")
     print("=" * 60)
-
