@@ -112,3 +112,65 @@ print("\n" + "="*60)
 print("✅ 任务2 全部完成！")
 print("📷 图片已保存：hour_distribution.png (dpi=150)")
 print("="*60)
+
+# ==============================
+# 任务3 线路站点分析
+# 严格按照要求实现，不修改函数签名
+# ==============================
+import seaborn as sns
+
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
+
+
+def analyze_route_stops(df, route_col='线路号', stops_col='ride_stops'):
+    # 计算均值和标准差
+    result = df.groupby(route_col)[stops_col].agg(['mean', 'std']).reset_index()
+    result.columns = ['线路号', 'mean_stops', 'std_stops']
+    # 按均值降序排序
+    result = result.sort_values('mean_stops', ascending=False)
+    return result
+
+
+
+if __name__ == "__main__":
+
+    df = pd.read_excel("ICData_clean.xlsx")
+
+    route_stats = analyze_route_stops(df)
+    print("=" * 60)
+    print("✅ 各线路平均搭乘站点数（前10行）")
+    print("=" * 60)
+    print(route_stats.head(10).to_string(index=False))
+
+    top15 = route_stats.head(15)
+
+    plt.figure(figsize=(11, 7))
+
+    sns.barplot(
+        data=top15,
+        x='mean_stops',
+        y='线路号',
+        orient='h',
+        palette='Blues_d',
+        errorbar='se',
+        capsize=0.3
+    )
+
+    # 图表格式
+    plt.title('TOP15线路平均搭乘站点数', fontsize=14)
+    plt.xlabel('平均搭乘站点数', fontsize=12)
+    plt.ylabel('线路号', fontsize=12)
+    plt.xlim(left=0)  # X轴从0开始
+    plt.grid(alpha=0.3, axis='x')
+
+    # 保存图片
+    plt.tight_layout()
+    plt.savefig('route_stops.png', dpi=150)
+    plt.close()
+
+    print("\n" + "=" * 60)
+    print("✅ 任务3 全部完成！")
+    print("📷 图片已保存：route_stops.png")
+    print("=" * 60)
+
