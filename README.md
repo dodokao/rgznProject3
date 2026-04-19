@@ -30,3 +30,37 @@ PHF 计算公式错误（将 PHF5 写成 “最大 5 分钟流量 / 高峰小时
 修正代码配置：将代码中列名字典的线路字段修改为"route": "线路号"，确保与数据集实际列名一致；
 增加容错校验：在代码中添加列名检查逻辑（missing_cols = [col for col in COLUMNS.values() if col not in df.columns]），运行时先校验列名是否存在，避免直接报错终止；
 验证修复效果：重新运行代码，控制台无列名缺失警告，成功统计线路维度 Top10 服务人次，生成符合要求的 4×10 热力图。
+4
+    # ==============================
+    # 任务4 高峰小时系数 PHF 精确计算（自动识别高峰）
+    # ==============================
+    df = pd.read_excel("ICData_clean.xlsx")# 读取任务1预处理后的清洗数据集（已剔除异常、缺失值）
+
+    df['交易时间'] = pd.to_datetime(df['交易时间'])  #将时间转化为datetime（为了加快运行我把前面部分内容注释了，所以此处再次转换）
+    df['hour'] = df['交易时间'].dt.hour            # 提取交易时间的"小时"部分
+    df['minute'] = df['交易时间'].dt.minute        #分为60分钟，方便后面的5、15分钟粒度统计
+
+    # 步骤2：自动识别全天高峰小时
+    hourly_count = df.groupby('hour').size()
+    peak_hour = hourly_count.idxmax()       # 找出刷卡量最大的小时，idmax函数返回最大值对应的索引
+    peak_volume = hourly_count.max()        # 获取高峰小时的总刷卡量，max函数返回小时统计结果的最大值
+
+    # 步骤3：筛选高峰小时的所有数据，单独分析
+    peak_df = df[df['hour'] == peak_hour].copy()
+
+    # 步骤4：5分钟粒度统计 → 计算PHF5
+    peak_df['5min_bin'] = peak_df['minute'] // 5               # 生成5分钟时间窗口标记：分钟数//5
+    max5 = peak_df.groupby('5min_bin').size().max()            # 按5分钟窗口分组统计流量，取最大值
+    phf5 = peak_volume / (12 * max5)                              #PHF5公式：高峰小时总流量 / (12 × 高峰小时内最大5分钟流量)
+
+    # 步骤5：15分钟粒度统计 → 计算PHF15
+    peak_df['15min_bin'] = peak_df['minute'] // 15             # PHF15公式：高峰小时总流量 / (4 × 高峰小时内最大15分钟流量)
+    max15 = peak_df.groupby('15min_bin').size().max()              # 按15分钟窗口分组统计流量，取最大值
+    phf15 = peak_volume / (4 * max15)                              # PHF15公式：高峰小时总流量 / (4 × 高峰小时内最大15分钟流量)
+
+    # 按照指定的格式输出
+    print(f"高峰小时：{peak_hour:02d}:00 ~ {peak_hour + 1:02d}:00，刷卡量：{peak_volume} 次")
+    print(f"最大5分钟刷卡量：{max5} 次")
+    print(f"PHF5  = {peak_volume} / (12 × {max5}) = {phf5:.4f}")
+    print(f"最大15分钟刷卡量：{max15} 次")
+    print(f"PHF15 = {peak_volume} / ( 4 × {max15}) = {phf15:.4f}")
