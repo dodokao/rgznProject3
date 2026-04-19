@@ -151,12 +151,14 @@ if __name__ == "__main__":
     # 用seaborn来实现 水平条形图可视化
     sns.barplot(
         data=top15,
-        x='mean_stops',#按要求处理X轴Y轴颜色title
+        x='mean_stops',
         y='线路号',
         orient='h',
+        hue='线路号',  # 新增：将y轴变量赋值给hue
         palette='Blues_d',
-        errorbar='se',# 误差棒显示标准差
-        capsize=0.3 # 误差棒端点大小
+        errorbar='se',
+        capsize=0.3,
+        legend=False  # 新增：关闭图例
     )
 
     # 图表格式
@@ -179,29 +181,31 @@ if __name__ == "__main__":
     # ==============================
     # 任务4 高峰小时系数 PHF 精确计算（自动识别高峰）
     # ==============================
-    df = pd.read_excel("ICData_clean.xlsx")
+    df = pd.read_excel("ICData_clean.xlsx")# 读取任务1预处理后的清洗数据集（已剔除异常、缺失值）
 
-    df['交易时间'] = pd.to_datetime(df['交易时间'])
-    df['hour'] = df['交易时间'].dt.hour
-    df['minute'] = df['交易时间'].dt.minute
+    df['交易时间'] = pd.to_datetime(df['交易时间'])#将时间转化为datetime（为了加快运行我把前面部分内容注释了，所以此处再次转换）
+    df['hour'] = df['交易时间'].dt.hour# 提取交易时间的"小时"部分
+    df['minute'] = df['交易时间'].dt.minute#分为60分钟，方便后面的5、15分钟粒度统计
 
-
+    # 步骤2：自动识别全天高峰小时
     hourly_count = df.groupby('hour').size()
-    peak_hour = hourly_count.idxmax()
-    peak_volume = hourly_count.max()
+    peak_hour = hourly_count.idxmax()# 找出刷卡量最大的小时，idmax函数返回最大值对应的索引
+    peak_volume = hourly_count.max()# 获取高峰小时的总刷卡量，max函数返回小时统计结果的最大值
 
-
+    # 步骤3：筛选高峰小时的所有数据，单独分析
     peak_df = df[df['hour'] == peak_hour].copy()
 
-    peak_df['5min_bin'] = peak_df['minute'] // 5
-    max5 = peak_df.groupby('5min_bin').size().max()
-    phf5 = peak_volume / (12 * max5)
+    # 步骤4：5分钟粒度统计 → 计算PHF5
+    peak_df['5min_bin'] = peak_df['minute'] // 5# 生成5分钟时间窗口标记：分钟数//5
+    max5 = peak_df.groupby('5min_bin').size().max()# 按5分钟窗口分组统计流量，取最大值
+    phf5 = peak_volume / (12 * max5)#PHF5公式：高峰小时总流量 / (12 × 高峰小时内最大5分钟流量)
 
+    # 步骤5：15分钟粒度统计 → 计算PHF15
+    peak_df['15min_bin'] = peak_df['minute'] // 15# PHF15公式：高峰小时总流量 / (4 × 高峰小时内最大15分钟流量)
+    max15 = peak_df.groupby('15min_bin').size().max()# 按15分钟窗口分组统计流量，取最大值
+    phf15 = peak_volume / (4 * max15)# PHF15公式：高峰小时总流量 / (4 × 高峰小时内最大15分钟流量)
 
-    peak_df['15min_bin'] = peak_df['minute'] // 15
-    max15 = peak_df.groupby('15min_bin').size().max()
-    phf15 = peak_volume / (4 * max15)
-
+    # 按照指定的格式输出
     print(f"高峰小时：{peak_hour:02d}:00 ~ {peak_hour + 1:02d}:00，刷卡量：{peak_volume} 次")
     print(f"最大5分钟刷卡量：{max5} 次")
     print(f"PHF5  = {peak_volume} / (12 × {max5}) = {phf5:.4f}")
