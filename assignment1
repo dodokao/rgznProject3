@@ -259,36 +259,37 @@ print("\n🎉 所有文件已成功生成！共生成 {} 个文件".format(len(f
 # ==============================
 # 任务6
 # ==============================
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+
 import warnings
-
 warnings.filterwarnings('ignore')
-
 
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
+COLUMNS = {
+    "driver": "驾驶员编号",  # 驾驶员列名
+    "route": "线路号",  # 线路列名（修正为线路号）
+    "station": "上车站点",  # 上车站点列名
+    "car": "车辆编号"  # 车辆编号列名
+}
 
 def build_performance_heatmap(df):
     """
     构建服务绩效热力图并分析规律
     Parameters
     ----------
-    df : pd.DataFrame  预处理后的公交数据集（需包含：司机编号、线路号、上车站点、车辆编号、刷卡记录等）
+    df : pd.DataFrame  预处理后的公交数据集
     """
-
-    driver_count = df.groupby('司机编号').size().sort_values(ascending=False).head(10)
-
-    route_count = df.groupby('线路号').size().sort_values(ascending=False).head(10)
-
-    station_count = df.groupby('上车站点').size().sort_values(ascending=False).head(10)
-
-    car_count = df.groupby('车辆编号').size().sort_values(ascending=False).head(10)
-
-
-    heatmap_data = pd.DataFrame({
+    #统计4个维度的Top10服务人次
+    # 1. 驾驶员维度：统计每个驾驶员的服务人次
+    driver_count = df.groupby(COLUMNS["driver"]).size().sort_values(ascending=False).head(10)
+    # 2. 线路维度：统计每条线路的服务人次（线路号列）
+    route_count = df.groupby(COLUMNS["route"]).size().sort_values(ascending=False).head(10)
+    # 3. 上车站点维度：统计每个上车站点的服务人次
+    station_count = df.groupby(COLUMNS["station"]).size().sort_values(ascending=False).head(10)
+    # 4. 车辆维度：统计每辆车的服务人次
+    car_count = df.groupby(COLUMNS["car"]).size().sort_values(ascending=False).head(10)
+    heatmap_data = pd.DataFrame({ # 构造4×10的热力图数据矩阵
         'Top1': [driver_count.iloc[0], route_count.iloc[0], station_count.iloc[0], car_count.iloc[0]],
         'Top2': [driver_count.iloc[1], route_count.iloc[1], station_count.iloc[1], car_count.iloc[1]],
         'Top3': [driver_count.iloc[2], route_count.iloc[2], station_count.iloc[2], car_count.iloc[2]],
@@ -300,43 +301,30 @@ def build_performance_heatmap(df):
         'Top9': [driver_count.iloc[8], route_count.iloc[8], station_count.iloc[8], car_count.iloc[8]],
         'Top10': [driver_count.iloc[9], route_count.iloc[9], station_count.iloc[9], car_count.iloc[9]]
     }, index=['司机', '线路', '上车站点', '车辆'])
-
-
-    plt.figure(figsize=(12, 6))
-
+    plt.figure(figsize=(12, 6))    # 绘制4×10热力图）
     sns.heatmap(
         heatmap_data,
-        annot=True,
-        cmap='YlOrRd',
-        fmt='d',
-        linewidths=0.5,
-        cbar_kws={'label': '服务人次'}
+        annot=True,  # 标注数值
+        cmap='YlOrRd',  # 指定配色
+        fmt='d',  # 标注为整数
+        linewidths=0.5,  # 格子边框宽度
+        cbar_kws={'label': '服务人次'}  # 色条标签
     )
-
-
-    plt.title(
-        '公交服务绩效Top10热力图',
-        fontsize=14,
-        pad=10
-    )
-    plt.suptitle(
-        '维度：司机/线路/上车站点/车辆 | 数值：各实体服务人次',
-        fontsize=10,
-        y=0.98
-    )
+    plt.title('公交服务绩效Top10热力图', fontsize=14, pad=10)   # 设置图表标签
+    plt.suptitle('维度：司机/线路/上车站点/车辆 | 数值：各实体服务人次', fontsize=10, y=0.98)
     plt.xlabel('排名（Top1~Top10）', fontsize=12)
     plt.ylabel('分析维度', fontsize=12)
-    plt.xticks(rotation=0)
+    plt.xticks(rotation=0)  # X轴标签旋转0度
     plt.yticks(rotation=0)
-
     plt.tight_layout()
-    plt.savefig(
+    plt.savefig(    # 保存图片
         'performance_heatmap.png',
         dpi=150,
         bbox_inches='tight'
     )
     plt.close()
 
+    # 步骤4：输出≥50字的绩效规律结论
     print("=" * 80)
     print("📊 服务绩效热力图规律分析（≥50字）：")
     print("=" * 80)
@@ -350,21 +338,19 @@ def build_performance_heatmap(df):
     print(conclusion)
 
     return heatmap_data
-
-
 if __name__ == "__main__":
-
     try:
         df = pd.read_excel("ICData_clean.xlsx")
         print("✅ 成功读取数据集，数据总行数：", len(df))
 
-        heatmap_data = build_performance_heatmap(df)
-
-        print("\n🎉 热力图已保存为：performance_heatmap.png（dpi=150）")
-        print("✅ 任务全部完成！")
+        missing_cols = [col for col in COLUMNS.values() if col not in df.columns]    # 自动检查列名是否匹配
+        if missing_cols:
+            print(f"❌ 警告：数据集缺少以下列名 → {missing_cols}")
+        else:
+            heatmap_data = build_performance_heatmap(df)
+            print("\n🎉 热力图已保存为：performance_heatmap.png（dpi=150）")
+            print("✅ 任务全部完成！")
     except FileNotFoundError:
         print("❌ 错误：未找到ICData_clean.xlsx文件，请检查路径！")
-    except KeyError as e:
-        print(f"❌ 错误：数据集缺少必要列 {e}，请检查列名（司机编号/线路号/上车站点/车辆编号）！")
 
 
